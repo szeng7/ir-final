@@ -22,3 +22,11 @@ To run the "pretraining" phase, run `./run_pretrainer`. This will run pretrainer
 ### Target Task (COVID-19)
 
 To run the target test phase, run `./run_expt`. This will run trainer.py.
+
+### Results
+
+| Train Accuracy  | Test Accuracy  | Features Used  | Model Used  | 
+|---|---|---|---|
+|   |   |   |   |
+|   |   |   |   |
+|   |   |   |   |

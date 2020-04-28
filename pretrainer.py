@@ -83,6 +83,18 @@ def main():
     train_feature_vectors = extract_features(train_x)
     classifier = svm.SVC()
     classifier.fit(train_feature_vectors, train_y)
+
+    #get train accuracy
+    predictions = classifier.predict(train_feature_vectors)
+    total = 0
+    correct = 0
+    for pred_y, true_y in zip(predictions, train_y):
+        if pred_y == true_y:
+            correct += 1
+        total += 1
+
+    print(f"Train Set Accuracy: {correct / total:.2f}")
+    
     
     #test
     test_feature_vectors = extract_features(test_x)

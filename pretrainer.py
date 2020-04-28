@@ -34,7 +34,6 @@ def load_tweets(file):
 
         return tweets, labels
 
-
 """
 PUT ALL FEATURE EXTRACTION FUNCTIONS HERE
 """
@@ -54,9 +53,8 @@ def extract_features(data):
 
     all_feature_vectors = []
 
-    for tweet in data:
+    for content in data:
         tweet_feature_vector = []
-        content = tweet.content
         #calling feature extraction functions
         #------------------------------------
         tweet_feature_vector.append(determine_length(content))
@@ -72,30 +70,30 @@ def main():
 
     #parse input arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data', required=True)
+    parser.add_argument('--train_data', required=True)
+    parser.add_argument('--test_data', required=True)
 
     ARGS = parser.parse_args()
 
-    tweets, labels = load_tweets(ARGS.data)
+    with open(ARGS.train_data, 'rb') as handle:
+        train_x, train_y = pickle.load(handle)
 
-    #split data
-    tweets_train, tweets_test, labels_train, labels_test = train_test_split(
-            tweets, labels, test_size=0.2, random_state=0)
+    with open(ARGS.test_data, 'rb') as handle:
+        test_x, test_y = pickle.load(handle)
 
     #train
-    train_feature_vectors = extract_features(tweets_train)
+    train_feature_vectors = extract_features(train_x)
     classifier = svm.SVC()
-    classifier.fit(train_feature_vectors, labels_train)
+    classifier.fit(train_feature_vectors, train_y)
     
     #test
-    test_feature_vectors = extract_features(tweets_test)
+    test_feature_vectors = extract_features(test_x)
     predictions = classifier.predict(test_feature_vectors)
 
     #evaluation metrics
-
     total = 0
     correct = 0
-    for pred_y, true_y in zip(predictions, labels_test):
+    for pred_y, true_y in zip(predictions, test_y):
         if pred_y == true_y:
             correct += 1
         total += 1

@@ -17,7 +17,7 @@ def load_tweets(file):
     Loads Tweets from input file where each line is a tag and Tweet organized
     as the following format:
         <positive/neutral/negative>\t<Tweet content>
-    Returns two lists, the first being the label and the second being the Tweet
+    Returns two lists, the first being the Tweets and the second being the labels 
     """
 
     with open(file, 'r') as fi:
@@ -28,8 +28,6 @@ def load_tweets(file):
             labels.append(label)
             tweet = Tweet
             tweet.content = tweet_content
-            #tweets.append(Tweet(None, None, None, tweet_content, None, None,
-            #    None, None))
             tweets.append(tweet)
 
         return tweets, labels

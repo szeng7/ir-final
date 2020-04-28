@@ -4,7 +4,7 @@
 
 #### Preprocessing
 
-There are various scripts that were used to preprocess that data included in `preprocessing`. However, since we have included pickles or txt files of the postprocessed data, these files are included just as guidance as to how we parsed the raw data, however, due to file size restriction on github, we opted to leave them out of our repo.
+There are various scripts that were used to preprocess that data included in `preprocessing`. However, since we have included pickles or txt files of the postprocessed data, these files are included just as guidance as to how we parsed the raw data and are not needed to run experiments if you clone the repo.
 
 As a summary:
 

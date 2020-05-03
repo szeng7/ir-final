@@ -27,7 +27,10 @@ def main():
                 values[province_state] = {}
             for count_index in range(len(row[11:])):
                 count = row[11+count_index]
-                values[province_state][dates[count_index]] = int(count)
+                if dates[count_index] in values[province_state]:
+                    values[province_state][dates[count_index]] += int(count)
+                else:
+                    values[province_state][dates[count_index]] = int(count)
                 
             line_count += 1
 

@@ -2,6 +2,7 @@
 import argparse 
 import pickle
 from tqdm import tqdm
+from joblib import dump, load
 
 import tensorflow as tf
 import numpy as np 
@@ -9,6 +10,7 @@ from sklearn import svm
 from sklearn.model_selection import train_test_split
 
 from tweet import Tweet
+from models import *
 
 
 def load_tweets(file):
@@ -70,6 +72,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--train_data', required=True)
     parser.add_argument('--test_data', required=True)
+    parser.add_argument('--model_output_file', required=False)
 
     ARGS = parser.parse_args()
 
@@ -95,7 +98,6 @@ def main():
 
     print(f"Train Set Accuracy: {correct / total:.2f}")
     
-    
     #test
     test_feature_vectors = extract_features(test_x)
     predictions = classifier.predict(test_feature_vectors)
@@ -109,6 +111,10 @@ def main():
         total += 1
 
     print(f"Test Set Accuracy: {correct / total:.2f}")
+
+    if ARGS.model_output_file:
+        print(f"Saved model to {ARGS.model_output_file}")
+        dump(classifier, ARGS.model_output_file)
 
 if __name__ == "__main__":
     main()

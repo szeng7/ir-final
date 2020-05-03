@@ -8,6 +8,16 @@ from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv1D, MaxPooling1
 from tensorflow.keras.layers import Embedding
 from tensorflow.keras import regularizers
 
+def simple_mlp(input_shape):
+
+    input = Input(shape=(input_shape,))
+    x = Dense(2, activation='relu')(input)
+    output = Dense(1, activation='softmax')(x)
+
+    model = Model(inputs=input, outputs=output)
+
+    return model
+
 """
 example of two models from another project
 
@@ -72,3 +82,5 @@ def conv_mlp(num_occupation, num_gender, embedding_dim, vocab_size, filters):
     return model
 
 """
+
+

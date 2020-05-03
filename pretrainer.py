@@ -6,8 +6,11 @@ from joblib import dump, load
 
 import tensorflow as tf
 import numpy as np 
-from sklearn import svm
 from sklearn.model_selection import train_test_split
+from sklearn import svm
+from tensorflow.keras import regularizers
+from tensorflow.keras import losses
+from tensorflow.keras.callbacks import ModelCheckpoint
 
 from tweet import Tweet
 from models import *
@@ -63,7 +66,7 @@ def extract_features(data):
         
         all_feature_vectors.append(tweet_feature_vector)
 
-    return np.asarray(all_feature_vectors)
+    return np.asarray(all_feature_vectors).astype('float32')
 
 
 def main():
@@ -73,6 +76,11 @@ def main():
     parser.add_argument('--train_data', required=True)
     parser.add_argument('--test_data', required=True)
     parser.add_argument('--model_output_file', required=False)
+    parser.add_argument('--model_architecture', required=True)
+    parser.add_argument('--optimizer', required=False)
+    parser.add_argument('--learning_rate', required=False, type=float)
+    parser.add_argument('--loss', required=False)
+    parser.add_argument('--num_epochs', required=False, type=int)
 
     ARGS = parser.parse_args()
 
@@ -82,39 +90,76 @@ def main():
     with open(ARGS.test_data, 'rb') as handle:
         test_x, test_y = pickle.load(handle)
 
-    #train
+    #select the right model
+
+    architectures = ['simple_mlp']
+    function_architecture_mapping = {
+        'simple_mlp': simple_mlp,
+    }
+
     train_feature_vectors = extract_features(train_x)
-    classifier = svm.SVC()
-    classifier.fit(train_feature_vectors, train_y)
-
-    #get train accuracy
-    predictions = classifier.predict(train_feature_vectors)
-    total = 0
-    correct = 0
-    for pred_y, true_y in zip(predictions, train_y):
-        if pred_y == true_y:
-            correct += 1
-        total += 1
-
-    print(f"Train Set Accuracy: {correct / total:.2f}")
-    
-    #test
     test_feature_vectors = extract_features(test_x)
-    predictions = classifier.predict(test_feature_vectors)
 
-    #evaluation metrics
-    total = 0
-    correct = 0
-    for pred_y, true_y in zip(predictions, test_y):
-        if pred_y == true_y:
-            correct += 1
-        total += 1
+    if ARGS.model_architecture == "svm":
+        #train
+        classifier = svm.SVC()
+        classifier.fit(train_feature_vectors, train_y)
 
-    print(f"Test Set Accuracy: {correct / total:.2f}")
+        #get train accuracy
+        predictions = classifier.predict(train_feature_vectors)
+        total = 0
+        correct = 0
+        for pred_y, true_y in zip(predictions, train_y):
+            if pred_y == true_y:
+                correct += 1
+            total += 1
 
-    if ARGS.model_output_file:
-        print(f"Saved model to {ARGS.model_output_file}")
-        dump(classifier, ARGS.model_output_file)
+        print(f"Train Set Accuracy: {correct / total:.2f}")
+
+        #test
+        predictions = classifier.predict(test_feature_vectors)
+
+        #evaluation metrics
+        total = 0
+        correct = 0
+        for pred_y, true_y in zip(predictions, test_y):
+            if pred_y == true_y:
+                correct += 1
+            total += 1
+
+        print(f"Test Set Accuracy: {correct / total:.2f}")
+
+        if ARGS.model_output_file:
+            print(f"Saved model to {ARGS.model_output_file}")
+            dump(classifier, ARGS.model_output_file)
+
+    elif ARGS.model_architecture not in architectures:
+        
+        raise Exception("Model chosen has not been implemented")
+    
+    else:
+        
+        model_name = function_architecture_mapping[ARGS.model_architecture]
+        model = model_name(train_feature_vectors.shape[1])
+
+        np_train_y = np.asarray(train_y).astype('float32')
+
+        if ARGS.loss == "binary_crossentropy":
+            loss = tf.keras.losses.BinaryCrossentropy()
+        else:
+            raise Exception("Other loss functions not supported yet")
+
+        if ARGS.optimizer == "adam":
+            optimizer = tf.keras.optimizers.Adam(learning_rate=ARGS.learning_rate)
+        else:
+            raise Exception("Other optimizers not supported yet")
+
+        checkpoint = ModelCheckpoint(ARGS.model_output_file, monitor='val_accuracy', verbose=1, save_best_only=True, mode='auto', period=1)
+
+        model.compile(loss=loss, optimizer=optimizer, metrics=['accuracy'])
+        history = model.fit(x=train_feature_vectors, y=np_train_y, epochs=ARGS.num_epochs, shuffle=True, validation_data =[test_feature_vectors, np.asarray(test_y).astype('float32')], callbacks = [checkpoint])
+        
+        #model.save_weights(ARGS.model_output_file)
 
 if __name__ == "__main__":
     main()

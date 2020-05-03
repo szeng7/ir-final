@@ -6,6 +6,7 @@ from joblib import dump, load
 import tensorflow as tf
 import numpy as np 
 from sklearn import svm
+from tensorflow.keras.models import load_model
 
 from tweet import Tweet
 
@@ -54,26 +55,24 @@ def main():
     #parse input arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--all_data', required=True)
-    parser.add_argument('--global_counts', required=True)
-    parser.add_argument('--us_counts', required=True)
     parser.add_argument('--weights', required=True)
+    parser.add_argument('--output_counts', required=True)
 
     ARGS = parser.parse_args()
 
     with open(ARGS.all_data, 'rb') as handle:
         all_data = pickle.load(handle)
 
-    with open(ARGS.global_counts, 'rb') as handle:
-        global_counts = pickle.load(handle)
-
-    with open(ARGS.us_counts, 'rb') as handle:
-        us_counts = pickle.load(handle)
-
     all_feature_vectors, dates = extract_features(all_data)
     
-    #model information, will hotswap this with some neural nets later
-    classifier = load(ARGS.weights) 
-    predictions = classifier.predict(all_feature_vectors)
+    if "joblib" in ARGS.weights:
+        classifier = load(ARGS.weights) 
+        predictions = classifier.predict(all_feature_vectors)
+    elif "h5" in ARGS.weights:
+        model = load_model(ARGS.weights)
+        predictions = model.predict(all_feature_vectors)
+    else:
+        raise Exception("Pretrained weights file format not supported yet")
 
     #evaluation metrics
 
@@ -87,17 +86,9 @@ def main():
                 date_counts[date] += 1
             else:
                 date_counts[date] = 1
-
-    total_us_counts_daily = {}
-
-    for state, date_dict in us_counts.items():
-        for date, count in date_dict.items():
-            if date not in total_us_counts_daily:
-                total_us_counts_daily[date] = count
-            else:
-                total_us_counts_daily[date] += count
-
-    #add graphing here once we get better data
     
+    with open(ARGS.output_counts, 'wb') as handle:
+        pickle.dump(date_counts, handle)
+        
 if __name__ == "__main__":
     main()

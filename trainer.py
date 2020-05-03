@@ -6,6 +6,7 @@ from joblib import dump, load
 import tensorflow as tf
 import numpy as np 
 from sklearn import svm
+from tensorflow.keras.models import load_model
 
 from tweet import Tweet
 
@@ -64,9 +65,14 @@ def main():
 
     all_feature_vectors, dates = extract_features(all_data)
     
-    #model information, will hotswap this with some neural nets later
-    classifier = load(ARGS.weights) 
-    predictions = classifier.predict(all_feature_vectors)
+    if "joblib" in ARGS.weights:
+        classifier = load(ARGS.weights) 
+        predictions = classifier.predict(all_feature_vectors)
+    elif "h5" in ARGS.weights:
+        model = load_model(ARGS.weights)
+        predictions = model.predict(all_feature_vectors)
+    else:
+        raise Exception("Pretrained weights file format not supported yet")
 
     #evaluation metrics
 
@@ -80,9 +86,9 @@ def main():
                 date_counts[date] += 1
             else:
                 date_counts[date] = 1
-
+    
     with open(ARGS.output_counts, 'wb') as handle:
         pickle.dump(date_counts, handle)
-
+        
 if __name__ == "__main__":
     main()

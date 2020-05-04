@@ -18,6 +18,7 @@ Then this script runs `preprocess_map_values.py` which uses `../data/raw/counts/
 
 To run the "pretraining" phase, run `./run_pretrainer`. This will run pretrainer.py.
 
+Note that we used the Google Universal Sentence encoder because of its simplistic nature, using a deep averaging network (DAN), combined with a large amount of supervised and unsupervised data (wikidata, snli corpus, q&a datasets, etc). In doing so, it captures the semantic meaning of entire sentences (rather than individual words, for which aggregation means to create sentence embeddings usually prove problematic) and is able to achieve high accuracies on downstream tasks such as semantic textual similarity, sentiment analysis, classification, etc. **Since this model is rather large, the first time you run this script, it'll take a while to download.** 
 
 ### Target Task (COVID-19)
 
@@ -27,6 +28,6 @@ To run the target test phase, run `./run_expt`. This will run trainer.py.
 
 | Train Accuracy  | Test Accuracy  | Features Used  | Model Used  | 
 |---|---|---|---|
-|   |   |   |   |
+|  63 |  62 |  all paper features (from kiho's branch), google encoder embeddings | SVM  |
 |   |   |   |   |
 |   |   |   |   |

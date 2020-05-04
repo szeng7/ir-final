@@ -7,6 +7,11 @@ import tensorflow as tf
 import numpy as np 
 from sklearn import svm
 from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
+from nltk.tokenize import word_tokenize
+from sklearn.metrics.pairwise import cosine_similarity
+import re
 
 from tweet import Tweet
 
@@ -36,12 +41,63 @@ def load_tweets(file):
 PUT ALL FEATURE EXTRACTION FUNCTIONS HERE
 """
 
+infection_words = ['getting', 'got', 'recovered', 'have', 'having', 'had', 'has', 'catching', 'catch', 'cured', 'infected']
+possession_words = ['bird', 'the flu', 'flu', 'sick', 'epidemic']
+concern_words = ['afraid', 'worried', 'scared', 'fear', 'worry', 'nervous', 'dread', 'dreaded', 'terrified']
+vaccination_words = ['vaccine', 'vaccines', 'shot', 'shots', 'mist', 'tamiflu', 'jab', 'nasal spray']
+positive_emoticons = [':)', ':D']
+negative_emoticons = [':(', ':/']
 
-def determine_length(tweet_content):
-    if len(tweet_content) > 10:
-        return 1
-    else:
-        return 0
+def count_infection_words(tweet_content):
+    count = 0
+    for word in infection_words:
+        if word in tweet_content:
+            count += 1
+    return count
+
+def count_possession_words(tweet_content):
+    count = 0
+    for word in possession_words:
+        if word in tweet_content:
+            count += 1
+    return count
+
+def count_concern_words(tweet_content):
+    count = 0
+    for word in concern_words:
+        if word in tweet_content:
+            count += 1
+    return count
+
+def count_vaccination_words(tweet_content):
+    count = 0
+    for word in vaccination_words:
+        if word in tweet_content:
+            count += 1
+    return count
+
+def count_positive_emoticons(tweet_content):
+    count = 0
+    for word in positive_emoticons:
+        if word in tweet_content:
+            count += 1
+    return count
+
+def count_negative_emoticons(tweet_content):
+    count = 0
+    for word in negative_emoticons:
+        if word in tweet_content:
+            count += 1
+    return count
+
+def count_mentions(tweet_content):
+    return len(re.findall('^@\S+', tweet_content))
+
+def count_hashtags(tweet_content):
+    return len(re.findall('^#\S+', tweet_content))
+
+def contains_url(tweet_content):
+    return bool(re.search('http[s]?: // (?:[a-zA-Z] |[0-9] |[$-_ @.& +] |[! * \(\),] | (?: %[0-9a-fA-F][0-9a-fA-F]))+', tweet_content))
 
 
 def extract_features(data):
@@ -55,8 +111,16 @@ def extract_features(data):
         tweet_feature_vector = []
         #calling feature extraction functions
         #------------------------------------
-        tweet_feature_vector.append(determine_length(content))
-        tweet_feature_vector.append(0)
+        tweet_feature_vector.append(count_infection_words(content))
+        tweet_feature_vector.append(count_possession_words(content))
+        tweet_feature_vector.append(count_concern_words(content))
+        tweet_feature_vector.append(count_vaccination_words(content))
+        tweet_feature_vector.append(count_positive_emoticons(content))
+        tweet_feature_vector.append(count_negative_emoticons(content))
+        tweet_feature_vector.append(count_mentions(content))
+        tweet_feature_vector.append(count_hashtags(content))
+        tweet_feature_vector.append(contains_url(content))
+
         #------------------------------------
         
         all_feature_vectors.append(tweet_feature_vector)
@@ -67,17 +131,23 @@ def extract_features(data):
 def main():
 
     #parse input arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--train_data', required=True)
-    parser.add_argument('--test_data', required=True)
+    #parser = argparse.ArgumentParser()
+    #parser.add_argument('--train_data', required=True)
+    #parser.add_argument('--test_data', required=True)
 
-    ARGS = parser.parse_args()
+    #ARGS = parser.parse_args()
 
-    with open(ARGS.train_data, 'rb') as handle:
+    #with open(ARGS.train_data, 'rb') as handle:
+    with open('data/influenza/influenza.train', 'rb') as handle:
         train_x, train_y = pickle.load(handle)
 
-    with open(ARGS.test_data, 'rb') as handle:
+    #with open(ARGS.test_data, 'rb') as handle:
+    with open('data/influenza/influenza.test', 'rb') as handle:
         test_x, test_y = pickle.load(handle)
+
+    #vectorizer = TfidfVectorizer()
+    #vectorizer = CountVectorizer(ngram_range=(1, 3))
+    #docs_tfidf = vectorizer.fit_transform(train_x)
 
     #train
     train_feature_vectors = extract_features(train_x)

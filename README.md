@@ -28,6 +28,6 @@ To run the target test phase, run `./run_expt`. This will run trainer.py.
 
 | Train Accuracy  | Test Accuracy  | Features Used  | Model Used  | 
 |---|---|---|---|
-|   |   |   |   |
+|  63 |  62 |  all paper features (from kiho's branch), google encoder embeddings | SVM  |
 |   |   |   |   |
 |   |   |   |   |

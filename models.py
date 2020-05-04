@@ -18,6 +18,39 @@ def simple_mlp(input_shape):
 
     return model
 
+def conv_mlp(input_shape):
+
+    """
+    Model with multiple conv layer/maxpool layer blocks -> mlp
+    """
+
+    NUM_FILTERS = 512
+    input = Input(shape=(input_shape,))
+    """
+    x = Conv1D(filters=NUM_FILTERS, kernel_size=2, padding="same", kernel_regularizer=regularizers.l1(0.01))(input)
+    x = MaxPooling1D(pool_size=2, strides=None, padding='valid')(x)
+    x = Conv1D(filters=NUM_FILTERS*2, kernel_size=2, padding="same", kernel_regularizer=regularizers.l1(0.01))(x)
+    x = MaxPooling1D(pool_size=2, strides=None, padding='valid')(x)
+    x = Conv1D(filters=NUM_FILTERS*4, kernel_size=2, padding="same", kernel_regularizer=regularizers.l1(0.01))(x)
+    x = tf.reduce_max(x, axis=1)
+    x = Flatten()(x)
+    """
+
+    x = Dense(4096, activation='relu', use_bias=False)(input)
+    x = Dense(2048, activation='relu', use_bias=False)(x)
+    x = Dense(1024, activation='relu', use_bias=False)(x)
+    x = Dense(512, activation='relu', use_bias=False)(x)
+    x = Dense(256, activation='relu', use_bias=False)(x)
+    x = Dense(128, activation='relu', use_bias=False)(x)
+    x = Dense(64, activation='relu', use_bias=False)(x)
+    x = Dense(32, activation='relu', use_bias=False)(x)
+
+    output = Dense(1, activation='softmax', use_bias=False)(x)
+
+    model = Model(inputs=input, outputs=output)
+
+    return model
+
 """
 example of two models from another project
 

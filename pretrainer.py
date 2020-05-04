@@ -12,6 +12,7 @@ from tensorflow.keras import regularizers
 from tensorflow.keras import losses
 from tensorflow.keras.callbacks import ModelCheckpoint
 import tensorflow_hub as hub
+import re 
 
 from tweet import Tweet
 from models import *
@@ -41,6 +42,64 @@ def load_tweets(file):
 PUT ALL FEATURE EXTRACTION FUNCTIONS HERE
 """
 
+infection_words = ['getting', 'got', 'recovered', 'have', 'having', 'had', 'has', 'catching', 'catch', 'cured', 'infected']
+possession_words = ['bird', 'the flu', 'flu', 'sick', 'epidemic']
+concern_words = ['afraid', 'worried', 'scared', 'fear', 'worry', 'nervous', 'dread', 'dreaded', 'terrified']
+vaccination_words = ['vaccine', 'vaccines', 'shot', 'shots', 'mist', 'tamiflu', 'jab', 'nasal spray']
+positive_emoticons = [':)', ':D']
+negative_emoticons = [':(', ':/']
+
+def count_infection_words(tweet_content):
+    count = 0
+    for word in infection_words:
+        if word in tweet_content:
+            count += 1
+    return count
+
+def count_possession_words(tweet_content):
+    count = 0
+    for word in possession_words:
+        if word in tweet_content:
+            count += 1
+    return count
+
+def count_concern_words(tweet_content):
+    count = 0
+    for word in concern_words:
+        if word in tweet_content:
+            count += 1
+    return count
+
+def count_vaccination_words(tweet_content):
+    count = 0
+    for word in vaccination_words:
+        if word in tweet_content:
+            count += 1
+    return count
+
+def count_positive_emoticons(tweet_content):
+    count = 0
+    for word in positive_emoticons:
+        if word in tweet_content:
+            count += 1
+    return count
+
+def count_negative_emoticons(tweet_content):
+    count = 0
+    for word in negative_emoticons:
+        if word in tweet_content:
+            count += 1
+    return count
+
+def count_mentions(tweet_content):
+    return len(re.findall('^@\S+', tweet_content))
+
+def count_hashtags(tweet_content):
+    return len(re.findall('^#\S+', tweet_content))
+
+def contains_url(tweet_content):
+    return bool(re.search('http[s]?: // (?:[a-zA-Z] |[0-9] |[$-_ @.& +] |[! * \(\),] | (?: %[0-9a-fA-F][0-9a-fA-F]))+', tweet_content))
+
 
 def determine_length(tweet_content):
     if len(tweet_content) > 10:
@@ -59,13 +118,23 @@ def extract_features(data):
     
     all_feature_vectors = []
 
-    for content in data:
+    for content_index in tqdm(range(len(data))):
+    
+        content = data[content_index]
 
         tweet_feature_vector = []
         #calling feature extraction functions
         #------------------------------------
         tweet_feature_vector.append(determine_length(content))
-        tweet_feature_vector.append(0)
+        tweet_feature_vector.append(count_infection_words(content))
+        tweet_feature_vector.append(count_possession_words(content))
+        tweet_feature_vector.append(count_concern_words(content))
+        tweet_feature_vector.append(count_vaccination_words(content))
+        tweet_feature_vector.append(count_positive_emoticons(content))
+        tweet_feature_vector.append(count_negative_emoticons(content))
+        tweet_feature_vector.append(count_mentions(content))
+        tweet_feature_vector.append(count_hashtags(content))
+        tweet_feature_vector.append(contains_url(content))
         #------------------------------------
 
         tweet_embedding = embed([content]) #512 dimension vector
@@ -92,6 +161,7 @@ def main():
     parser.add_argument('--learning_rate', required=False, type=float)
     parser.add_argument('--loss', required=False)
     parser.add_argument('--num_epochs', required=False, type=int)
+    parser.add_argument('--batch_size', required=False, type=int)
 
     ARGS = parser.parse_args()
 
@@ -103,9 +173,10 @@ def main():
 
     #select the right model
 
-    architectures = ['simple_mlp']
+    architectures = ['simple_mlp', 'conv_mlp']
     function_architecture_mapping = {
         'simple_mlp': simple_mlp,
+        'conv_mlp': conv_mlp,
     }
 
     train_feature_vectors = extract_features(train_x)
@@ -152,7 +223,6 @@ def main():
         
         model_name = function_architecture_mapping[ARGS.model_architecture]
         model = model_name(train_feature_vectors.shape[1])
-        print(train_feature_vectors.shape)
         np_train_y = np.asarray(train_y).astype('float32')
 
         if ARGS.loss == "binary_crossentropy":
@@ -168,7 +238,7 @@ def main():
         checkpoint = ModelCheckpoint(ARGS.model_output_file, monitor='val_accuracy', verbose=1, save_best_only=True, mode='auto', period=1)
 
         model.compile(loss=loss, optimizer=optimizer, metrics=['accuracy'])
-        history = model.fit(x=train_feature_vectors, y=np_train_y, epochs=ARGS.num_epochs, shuffle=True, validation_data =[test_feature_vectors, np.asarray(test_y).astype('float32')], callbacks = [checkpoint])
+        history = model.fit(x=train_feature_vectors, y=np_train_y, batch_size=ARGS.batch_size, epochs=ARGS.num_epochs, shuffle=True, validation_data =[test_feature_vectors, np.asarray(test_y).astype('float32')], callbacks = [checkpoint])
         
         #model.save_weights(ARGS.model_output_file)
 

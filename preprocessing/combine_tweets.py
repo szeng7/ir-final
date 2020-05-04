@@ -4,81 +4,112 @@ import pickle
 
 RANDOM_SEED = 21
 
-all_data = {}
+# unrelated/news (0) vs related (1)
 
-with open("../data/raw/influenza/RelatedVsNotRelated2009TweetIDs.content.txt", "r") as f:
+unrelated_vs_related_data = {}
+inconsistent_tweet_ids = set()
+
+with open("../data/raw/influenza/RelatedVsNotRelated2009TweetIDs.content.txt", "r", encoding='utf-8') as f:
     for line in f:
         line = line.split("\t")
-        tweet_id = line[0]
-        label = line[1]
+        tweet_id = int(line[0])
+        label = int(line[1])
         content = line[2]
 
-        if tweet_id in all_data:
-            if label == all_data[tweet_id][1]:
+        if tweet_id in unrelated_vs_related_data:
+            if label == unrelated_vs_related_data[tweet_id][1]:
                 continue
             else:
-                del all_data[tweet_id]
-        else:
-            all_data[tweet_id] = (content, label)
+                # Some tweet id's with inconsistent labels - keep track and delete them afterward
+                inconsistent_tweet_ids.add(tweet_id)
 
-with open("../data/raw/influenza/RelatedVsNotRelated2012TweetIDs.content.txt", "r") as f:
+        else:
+            unrelated_vs_related_data[tweet_id] = (content, label)
+
+with open("../data/raw/influenza/RelatedVsNotRelated2012TweetIDs.content.txt", "r", encoding='utf-8') as f:
     for line in f:
         line = line.split("\t")
-        tweet_id = line[0]
-        label = line[1]
+        tweet_id = int(line[0])
+        label = int(line[1])
         content = line[2]
 
-        if tweet_id in all_data:
-            if label == all_data[tweet_id][1]:
+        if tweet_id in unrelated_vs_related_data:
+            if label == unrelated_vs_related_data[tweet_id][1]:
                 continue
             else:
-                del all_data[tweet_id]
+                inconsistent_tweet_ids.add(tweet_id)
         else:
-            all_data[tweet_id] = (content, label)
+            unrelated_vs_related_data[tweet_id] = (content, label)
 
-with open("../data/raw/influenza/AwarenessVsInfection2009TweetIDs.content.txt", "r") as f:
+for tweet_id in inconsistent_tweet_ids:
+    del unrelated_vs_related_data[tweet_id]
+
+
+# infection (0) vs awareness (1)
+
+infection_vs_awareness_data = {}
+inconsistent_tweet_ids = set()
+
+with open("../data/raw/influenza/AwarenessVsInfection2009TweetIDs.content.txt", "r", encoding='utf-8') as f:
     for line in f:
         line = line.split("\t")
-        tweet_id = line[0]
-        label = line[1]
+        tweet_id = int(line[0])
+        label = int(line[1])
         content = line[2]
 
-        if tweet_id in all_data:
-            if all_data[tweet_id][1] == 0:
+        if tweet_id in infection_vs_awareness_data:
+            if label == infection_vs_awareness_data[tweet_id][1]:
                 continue
-            elif label == 0:
-                all_data[tweet_id] = (content, 1) #infection AND influenza related
-        else:
-            if label == 0: #switch labels around, 1 should be infection, 0 is awareness
-                all_data[tweet_id] = (content, 1)
             else:
-                all_data[tweet_id] = (content, 0)
+                # Some tweet id's with inconsistent labels - keep track and delete them afterward
+                inconsistent_tweet_ids.add(tweet_id)
 
-with open("../data/raw/influenza/AwarenessVsInfection2012TweetIDs.content.txt", "r") as f:
+        else:
+            infection_vs_awareness_data[tweet_id] = (content, label)
+
+with open("../data/raw/influenza/AwarenessVsInfection2012TweetIDs.content.txt", "r", encoding='utf-8') as f:
     for line in f:
         line = line.split("\t")
-        tweet_id = line[0]
-        label = line[1]
+        tweet_id = int(line[0])
+        label = int(line[1])
         content = line[2]
 
-        if tweet_id in all_data:
+        if tweet_id in infection_vs_awareness_data:
+            if label == infection_vs_awareness_data[tweet_id][1]:
+                continue
+            else:
+                # Some tweet id's with inconsistent labels - keep track and delete them afterward
+                inconsistent_tweet_ids.add(tweet_id)
+
+        else:
+            infection_vs_awareness_data[tweet_id] = (content, label)
+
+for tweet_id in inconsistent_tweet_ids:
+    del infection_vs_awareness_data[tweet_id]
+
+
+# combine data sets - 1 for infected with flu, 0 otherwise
+# if there only exists data for infection vs awareness without unrelated/news vs related, it becomes ambiguous
+for tweet_id in unrelated_vs_related_data.keys():
+    if unrelated_vs_related_data[tweet_id][1] == 1: # if flu related
+        # flu related but not infected should become 0
+        if tweet_id in infection_vs_awareness_data and infection_vs_awareness_data[tweet_id][1] == 0:
             continue
         else:
-            if label == 0: #switch labels around, 1 should be infection, 0 is awareness
-                all_data[tweet_id] = (content, 1)
-            else:
-                all_data[tweet_id] = (content, 0)
+            unrelated_vs_related_data[tweet_id] = (unrelated_vs_related_data[tweet_id][0], 0)
+
 x = []
 y = []
-for key, value in all_data.items():
+for key, value in unrelated_vs_related_data.items():
     content, label = value
     x.append(content)
     y.append(label)
 
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=RANDOM_SEED)
 
+
 with open("../data/influenza/influenza.train", 'wb') as handle:
-        pickle.dump((x_train, y_train), handle)
+    pickle.dump((x_train, y_train), handle)
 
 with open("../data/influenza/influenza.test", 'wb') as handle:
-        pickle.dump((x_test, y_test), handle)
+    pickle.dump((x_test, y_test), handle)

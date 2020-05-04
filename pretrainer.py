@@ -11,10 +11,10 @@ from sklearn import svm
 from tensorflow.keras import regularizers
 from tensorflow.keras import losses
 from tensorflow.keras.callbacks import ModelCheckpoint
+import tensorflow_hub as hub
 
 from tweet import Tweet
 from models import *
-
 
 def load_tweets(file):
     """Load Tweets from input file.
@@ -54,16 +54,27 @@ def extract_features(data):
     Helper function to call each of the feature extraction functions
     """
 
+    #load in model
+    embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
+    
     all_feature_vectors = []
 
     for content in data:
+
         tweet_feature_vector = []
         #calling feature extraction functions
         #------------------------------------
         tweet_feature_vector.append(determine_length(content))
         tweet_feature_vector.append(0)
         #------------------------------------
-        
+
+        tweet_embedding = embed([content]) #512 dimension vector
+        assert tweet_embedding.shape[1] == 512
+
+        tweet_embedding = np.ravel(tweet_embedding)
+        tweet_feature_vector = np.asarray(tweet_feature_vector)
+        tweet_feature_vector = np.concatenate((tweet_embedding, tweet_feature_vector), axis=0)
+
         all_feature_vectors.append(tweet_feature_vector)
 
     return np.asarray(all_feature_vectors).astype('float32')
@@ -141,7 +152,7 @@ def main():
         
         model_name = function_architecture_mapping[ARGS.model_architecture]
         model = model_name(train_feature_vectors.shape[1])
-
+        print(train_feature_vectors.shape)
         np_train_y = np.asarray(train_y).astype('float32')
 
         if ARGS.loss == "binary_crossentropy":

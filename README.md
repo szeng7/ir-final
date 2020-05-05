@@ -28,7 +28,6 @@ To run the target test phase, run `./run_expt`. This will run trainer.py.
 
 | Train Accuracy  | Test Accuracy  | Features Used  | Model Used  | 
 |---|---|---|---|
-|  78 |  79 |  all paper features (from kiho's branch), google encoder embeddings, symptom word check, tweet length | SVM  |
-|  90 |  84 |  all paper features, google encoder embeddings, symptom word check, no stemming |  SVM |
+|  90 |  84 |  all paper features, google encoder embeddings, symptom word check, no stemming, tweet length |  SVM |
 |  90 |  84 |  all paper features, google encoder embeddings, symptom word check, no stemming, count cdc words |  SVM |
 |  92 |  83 |  all paper features, google encoder embeddings, symptom word check, stemming, count cdc words |  SVM |

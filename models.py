@@ -18,7 +18,7 @@ def simple_mlp(input_shape):
 
     return model
 
-def conv_mlp(input_shape):
+def mlp(input_shape):
 
     """
     Model with multiple conv layer/maxpool layer blocks -> mlp
@@ -36,14 +36,10 @@ def conv_mlp(input_shape):
     x = Flatten()(x)
     """
 
-    x = Dense(4096, activation='relu', use_bias=False)(input)
-    x = Dense(2048, activation='relu', use_bias=False)(x)
-    x = Dense(1024, activation='relu', use_bias=False)(x)
-    x = Dense(512, activation='relu', use_bias=False)(x)
-    x = Dense(256, activation='relu', use_bias=False)(x)
-    x = Dense(128, activation='relu', use_bias=False)(x)
-    x = Dense(64, activation='relu', use_bias=False)(x)
-    x = Dense(32, activation='relu', use_bias=False)(x)
+    x = Dense(16, activation='relu', use_bias=False)(input)
+    x = Dense(8, activation='relu', use_bias=False)(x)
+    x = Dense(4, activation='relu', use_bias=False)(x)
+    x = Dense(2, activation='relu', use_bias=False)(x)
 
     output = Dense(1, activation='softmax', use_bias=False)(x)
 

@@ -60,7 +60,7 @@ def extract_features(data):
                     #collect date for future validation
                     if tweet.date:
                         tweet_date = tweet.date.split("-")
-                        tweet_date = tweet_date[1] + "/" + tweet_date[2] + "/20"
+                        tweet_date = tweet_date[1].lstrip("0") + "/" + tweet_date[2] + "/20"
                         dates.append(tweet_date)
             except:
                 continue

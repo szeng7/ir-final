@@ -2,5 +2,6 @@
 
 python trainer.py \
     --all_data data/covid/raw_tweets.test.pickle \
-    --weights pretrained_weights/simple_mlp.h5 \
-    --output_counts output_counts.pickle \
+    --weights pretrained_weights/svm_stem.joblib \
+    --output_counts new_output_counts.pickle \
+    --output_predictions new_output_prediction.pickle \

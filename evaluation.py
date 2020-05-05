@@ -8,6 +8,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_counts', required=True)
     parser.add_argument('--real_counts', required=True)
+    parser.add_argument('--output_predictions', required=True)
 
     ARGS = parser.parse_args()
 
@@ -16,7 +17,9 @@ def main():
 
     with open(ARGS.real_counts, 'rb') as handle:
         real_counts = pickle.load(handle)
-    
+
+    with open(ARGS.output_predictions, 'rb') as handle:
+        output_predictions = pickle.load(handle)
 
 if __name__ == "__main__":
     main()

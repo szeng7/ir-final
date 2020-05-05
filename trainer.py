@@ -7,47 +7,63 @@ import tensorflow as tf
 import numpy as np 
 from sklearn import svm
 from tensorflow.keras.models import load_model
+import tensorflow_hub as hub
+from langdetect import detect
 
 from tweet import Tweet
-
 from models import *
-
-"""
-PUT ALL FEATURE EXTRACTION FUNCTIONS HERE
-"""
-
-def determine_length(tweet_content):
-    if len(tweet_content) > 10:
-        return 1
-    else:
-        return 0
+from covid_features import *
 
 def extract_features(data):
     """
     Helper function to call each of the feature extraction functions
     """
 
+    #load in pretrained model
+    embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
+
     all_feature_vectors = []
     dates = []
 
-    for tweet in data:
+    for tweet_index in tqdm(range(len(data))):
+        tweet = data[tweet_index]
         tweet_feature_vector = []
         if tweet.country_code == "US":
             content = tweet.content
-            #calling feature extraction functions
-            #------------------------------------
-            tweet_feature_vector.append(determine_length(content))
-            tweet_feature_vector.append(0)
-            #------------------------------------
-            
-            all_feature_vectors.append(tweet_feature_vector)
+            try:
+                if detect(content) == 'en':
+                    #calling feature extraction functions
+                    #------------------------------------
+                    #tweet_feature_vector.append(determine_length(content))
+                    tweet_feature_vector.append(count_infection_words(content))
+                    tweet_feature_vector.append(count_possession_words(content))
+                    tweet_feature_vector.append(count_concern_words(content))
+                    tweet_feature_vector.append(count_vaccination_words(content))
+                    tweet_feature_vector.append(count_symptom_words(content))
+                    tweet_feature_vector.append(count_cdc_words(content))
+                    #tweet_feature_vector.append(count_positive_emoticons(content))
+                    tweet_feature_vector.append(count_negative_emoticons(content))
+                    tweet_feature_vector.append(count_mentions(content))
+                    tweet_feature_vector.append(count_hashtags(content))
+                    #tweet_feature_vector.append(contains_url(content))
+                    #------------------------------------
+                    
+                    tweet_embedding = embed([content]) #512 dimension vector
+                    assert tweet_embedding.shape[1] == 512
 
-            #collect date for future validation
-            if tweet.date:
-                tweet_date = tweet.date.split("-")
-                tweet_date = tweet_date[1] + "/" + tweet_date[2] + "/20"
-                dates.append(tweet_date)
+                    tweet_embedding = np.ravel(tweet_embedding)
+                    tweet_feature_vector = np.asarray(tweet_feature_vector)
+                    tweet_feature_vector = np.concatenate((tweet_embedding, tweet_feature_vector), axis=0)
 
+                    all_feature_vectors.append(tweet_feature_vector)
+
+                    #collect date for future validation
+                    if tweet.date:
+                        tweet_date = tweet.date.split("-")
+                        tweet_date = tweet_date[1] + "/" + tweet_date[2] + "/20"
+                        dates.append(tweet_date)
+            except:
+                continue
     return np.asarray(all_feature_vectors), np.asarray(dates)
 
 def main():
@@ -57,6 +73,7 @@ def main():
     parser.add_argument('--all_data', required=True)
     parser.add_argument('--weights', required=True)
     parser.add_argument('--output_counts', required=True)
+    parser.add_argument('--output_predictions', required=True)
 
     ARGS = parser.parse_args()
 
@@ -76,9 +93,6 @@ def main():
 
     #evaluation metrics
 
-    predictions = np.append(predictions, "1")
-    dates = np.append(dates, "03/03/20")
-
     date_counts = {}
     for prediction, date in zip(predictions, dates):
         if prediction != '0':
@@ -86,9 +100,17 @@ def main():
                 date_counts[date] += 1
             else:
                 date_counts[date] = 1
-    
+
+    covid_tweets = []
+    for tweet, prediction in zip(all_data, predictions):
+        if prediction == 1:
+            covid_tweets.append(tweet.content)
+
     with open(ARGS.output_counts, 'wb') as handle:
         pickle.dump(date_counts, handle)
+
+    with open(ARGS.output_predictions, 'wb') as handle:
+        pickle.dump(covid_tweets, handle)
         
 if __name__ == "__main__":
     main()

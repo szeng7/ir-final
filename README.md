@@ -31,3 +31,5 @@ To run the target test phase, run `./run_expt`. This will run trainer.py.
 |  90 |  84 |  all paper features, google encoder embeddings, symptom word check, no stemming, tweet length |  SVM |
 |  90 |  84 |  all paper features, google encoder embeddings, symptom word check, no stemming, count cdc words |  SVM |
 |  92 |  83 |  all paper features, google encoder embeddings, symptom word check, stemming, count cdc words |  SVM |
+|  88 |  84 |  all paper features, google encoder embeddings, symptom word check, stemming, count cdc words |  logreg |
+|  78 |  79 |  all paper features, google encoder embeddings, symptom word check, stemming, count cdc words |  svm gauss kernel |

@@ -8,14 +8,18 @@ import tensorflow as tf
 import numpy as np 
 from sklearn.model_selection import train_test_split
 from sklearn import svm
+from sklearn.svm import SVC
 from tensorflow.keras import regularizers
 from tensorflow.keras import losses
 from tensorflow.keras.callbacks import ModelCheckpoint
 import tensorflow_hub as hub
-import re 
+from sklearn.linear_model import LogisticRegression
 
 from tweet import Tweet
 from models import *
+from flu_features import *
+
+RANDOM_SEED = 21
 
 def load_tweets(file):
     """Load Tweets from input file.
@@ -38,82 +42,12 @@ def load_tweets(file):
 
         return tweets, labels
 
-"""
-PUT ALL FEATURE EXTRACTION FUNCTIONS HERE
-"""
-
-infection_words = ['getting', 'got', 'recovered', 'have', 'having', 'had', 'has', 'catching', 'catch', 'cured', 'infected']
-possession_words = ['bird', 'the flu', 'flu', 'sick', 'epidemic']
-concern_words = ['afraid', 'worried', 'scared', 'fear', 'worry', 'nervous', 'dread', 'dreaded', 'terrified']
-vaccination_words = ['vaccine', 'vaccines', 'shot', 'shots', 'mist', 'tamiflu', 'jab', 'nasal spray']
-positive_emoticons = [':)', ':D']
-negative_emoticons = [':(', ':/']
-
-def count_infection_words(tweet_content):
-    count = 0
-    for word in infection_words:
-        if word in tweet_content:
-            count += 1
-    return count
-
-def count_possession_words(tweet_content):
-    count = 0
-    for word in possession_words:
-        if word in tweet_content:
-            count += 1
-    return count
-
-def count_concern_words(tweet_content):
-    count = 0
-    for word in concern_words:
-        if word in tweet_content:
-            count += 1
-    return count
-
-def count_vaccination_words(tweet_content):
-    count = 0
-    for word in vaccination_words:
-        if word in tweet_content:
-            count += 1
-    return count
-
-def count_positive_emoticons(tweet_content):
-    count = 0
-    for word in positive_emoticons:
-        if word in tweet_content:
-            count += 1
-    return count
-
-def count_negative_emoticons(tweet_content):
-    count = 0
-    for word in negative_emoticons:
-        if word in tweet_content:
-            count += 1
-    return count
-
-def count_mentions(tweet_content):
-    return len(re.findall('^@\S+', tweet_content))
-
-def count_hashtags(tweet_content):
-    return len(re.findall('^#\S+', tweet_content))
-
-def contains_url(tweet_content):
-    return bool(re.search('http[s]?: // (?:[a-zA-Z] |[0-9] |[$-_ @.& +] |[! * \(\),] | (?: %[0-9a-fA-F][0-9a-fA-F]))+', tweet_content))
-
-
-def determine_length(tweet_content):
-    if len(tweet_content) > 10:
-        return 1
-    else:
-        return 0
-
-
 def extract_features(data):
     """
     Helper function to call each of the feature extraction functions
     """
 
-    #load in model
+    #load in pretrained model
     embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
     
     all_feature_vectors = []
@@ -125,16 +59,18 @@ def extract_features(data):
         tweet_feature_vector = []
         #calling feature extraction functions
         #------------------------------------
-        tweet_feature_vector.append(determine_length(content))
+        #tweet_feature_vector.append(determine_length(content))
         tweet_feature_vector.append(count_infection_words(content))
         tweet_feature_vector.append(count_possession_words(content))
         tweet_feature_vector.append(count_concern_words(content))
         tweet_feature_vector.append(count_vaccination_words(content))
-        tweet_feature_vector.append(count_positive_emoticons(content))
+        tweet_feature_vector.append(count_symptom_words(content))
+        tweet_feature_vector.append(count_cdc_words(content))
+        #tweet_feature_vector.append(count_positive_emoticons(content))
         tweet_feature_vector.append(count_negative_emoticons(content))
         tweet_feature_vector.append(count_mentions(content))
         tweet_feature_vector.append(count_hashtags(content))
-        tweet_feature_vector.append(contains_url(content))
+        #tweet_feature_vector.append(contains_url(content))
         #------------------------------------
 
         tweet_embedding = embed([content]) #512 dimension vector
@@ -173,16 +109,81 @@ def main():
 
     #select the right model
 
-    architectures = ['simple_mlp', 'conv_mlp']
+    architectures = ['simple_mlp', 'mlp']
     function_architecture_mapping = {
         'simple_mlp': simple_mlp,
-        'conv_mlp': conv_mlp,
+        'mlp': mlp,
     }
 
     train_feature_vectors = extract_features(train_x)
     test_feature_vectors = extract_features(test_x)
 
-    if ARGS.model_architecture == "svm":
+
+    if ARGS.model_architecture == "svc":
+        classifier = SVC(kernel="rbf", gamma="auto")
+        classifier.fit(train_feature_vectors, train_y)
+
+        #get train accuracy
+        predictions = classifier.predict(train_feature_vectors)
+        total = 0
+        correct = 0
+        for pred_y, true_y in zip(predictions, train_y):
+            if pred_y == true_y:
+                correct += 1
+            total += 1
+
+        print(f"Train Set Accuracy: {correct / total:.2f}")
+
+        #test
+        predictions = classifier.predict(test_feature_vectors)
+
+        #evaluation metrics
+        total = 0
+        correct = 0
+        for pred_y, true_y in zip(predictions, test_y):
+            if pred_y == true_y:
+                correct += 1
+            total += 1
+
+        print(f"Test Set Accuracy: {correct / total:.2f}")
+
+        if ARGS.model_output_file:
+            print(f"Saved model to {ARGS.model_output_file}")
+            dump(classifier, ARGS.model_output_file)
+
+    elif ARGS.model_architecture == "logreg":
+        classifier = LogisticRegression().fit(train_feature_vectors, train_y)
+        classifier.fit(train_feature_vectors, train_y)
+
+        #get train accuracy
+        predictions = classifier.predict(train_feature_vectors)
+        total = 0
+        correct = 0
+        for pred_y, true_y in zip(predictions, train_y):
+            if pred_y == true_y:
+                correct += 1
+            total += 1
+
+        print(f"Train Set Accuracy: {correct / total:.2f}")
+
+        #test
+        predictions = classifier.predict(test_feature_vectors)
+
+        #evaluation metrics
+        total = 0
+        correct = 0
+        for pred_y, true_y in zip(predictions, test_y):
+            if pred_y == true_y:
+                correct += 1
+            total += 1
+
+        print(f"Test Set Accuracy: {correct / total:.2f}")
+
+        if ARGS.model_output_file:
+            print(f"Saved model to {ARGS.model_output_file}")
+            dump(classifier, ARGS.model_output_file)
+
+    elif ARGS.model_architecture == "svm":
         #train
         classifier = svm.SVC()
         classifier.fit(train_feature_vectors, train_y)

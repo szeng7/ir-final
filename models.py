@@ -18,7 +18,7 @@ def simple_mlp(input_shape):
 
     return model
 
-def conv_mlp(input_shape):
+def mlp(input_shape):
 
     """
     Model with multiple conv layer/maxpool layer blocks -> mlp

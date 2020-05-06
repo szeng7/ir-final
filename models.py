@@ -7,6 +7,10 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv1D, MaxPooling1D, Input, Layer
 from tensorflow.keras.layers import Embedding
 from tensorflow.keras import regularizers
+from dnn_model import Net
+
+def dnn(input_shape):
+    return Net(input_shape)
 
 def simple_mlp(input_shape):
 

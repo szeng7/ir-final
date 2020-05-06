@@ -19,6 +19,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import GaussianNB
 from tweet import Tweet
 from models import *
+import dnn_model
 from flu_features import *
 
 RANDOM_SEED = 21
@@ -169,6 +170,7 @@ def main():
     function_architecture_mapping = {
         'simple_mlp': simple_mlp,
         'mlp': mlp,
+        'dnn': dnn
     }
 
     print('Selected model: ' + ARGS.model_architecture)
@@ -179,6 +181,19 @@ def main():
             test_feature_vectors, test_y,
             output_file=ARGS.model_output_file
         )
+    elif ARGS.model_architecture == 'dnn':
+        model = dnn(train_feature_vectors.shape[1])
+        model = dnn_model.fit(model, train_feature_vectors, train_y)
+
+        acc, predictions = dnn_model.predict(model, train_feature_vectors, train_y)
+        print(f"Train Set Accuracy: {acc:.2f}")
+
+        acc, predictions = dnn_model.predict(model, test_feature_vectors, test_y)
+        print(f"Test Set Accuracy: {acc:.2f}")
+        
+        if ARGS.model_output_file:
+            print(f"Saved model to {ARGS.model_output_file}")
+            dnn_model.save_model(model, ARGS.model_output_file)
     elif ARGS.model_architecture in function_architecture_mapping:
         model_name = function_architecture_mapping[ARGS.model_architecture]
         model = model_name(train_feature_vectors.shape[1])

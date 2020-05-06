@@ -29,7 +29,11 @@ To run the target test phase, run `./run_expt`. This will run trainer.py.
 | Train Accuracy  | Test Accuracy  | Features Used  | Model Used  | 
 |---|---|---|---|
 |  90 |  84 |  all paper features, google encoder embeddings, symptom word check, no stemming, tweet length |  SVM |
+|  88 |  84 |  all paper features, google encoder embeddings, symptom word check, no stemming, tweet length |  Deep Neural Net |
+|  95 |  83 |  all paper features, google encoder embeddings, symptom word check, no stemming, tweet length |  Random Forest |
 |  90 |  84 |  all paper features, google encoder embeddings, symptom word check, no stemming, count cdc words |  SVM |
 |  92 |  83 |  all paper features, google encoder embeddings, symptom word check, stemming, count cdc words |  SVM |
 |  88 |  84 |  all paper features, google encoder embeddings, symptom word check, stemming, count cdc words |  logreg |
+|  90 |  78 |  all paper features, google encoder embeddings, symptom word check, stemming, count cdc words |  Decision Tree |
 |  78 |  79 |  all paper features, google encoder embeddings, symptom word check, stemming, count cdc words |  svm gauss kernel |
+|  81 |  76 |  all paper features, google encoder embeddings, symptom word check, stemming, count cdc words | Naive Bayes |

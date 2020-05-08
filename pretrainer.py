@@ -14,10 +14,15 @@ from tensorflow.keras import losses
 from tensorflow.keras.callbacks import ModelCheckpoint
 import tensorflow_hub as hub
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.naive_bayes import GaussianNB
+import re
 
 from tweet import Tweet
 from models import *
 from flu_features import *
+import dnn_model
 
 RANDOM_SEED = 21
 
@@ -41,6 +46,51 @@ def load_tweets(file):
             tweets.append(tweet)
 
         return tweets, labels
+
+def extract_vocab(data):
+    """
+    Helper function to extract vocab from data
+    """
+
+    vocab = {}
+
+    for content_index in tqdm(range(len(data))):
+    
+        content = data[content_index].strip("\n")
+        content = re.sub(r'[^\w\s]','', content)
+        
+        for word in content.split(" "):
+            word = word.lower()
+            if word not in vocab:
+                vocab[word] = len(vocab)
+    
+    vocab["OOV"] = len(vocab)
+
+    return vocab
+
+def extract_bow_vector(data, vocab):
+    """
+    Helper function to create BOW vectors for training
+    """
+    all_feature_vectors = []
+
+    for content_index in tqdm(range(len(data))):
+        
+        tweet_vector = [0] * len(vocab)
+
+        content = data[content_index].strip("\n")
+        content = re.sub(r'[^\w\s]','', content)
+    
+        for word in content.split(" "):
+            word = word.lower()
+            if word in vocab:
+                tweet_vector[vocab[word]] = 1
+            else:
+                tweet_vector[vocab["OOV"]] = 1
+        
+        all_feature_vectors.append(tweet_vector)
+    
+    return np.asarray(all_feature_vectors).astype('float32')
 
 def extract_features(data):
     """
@@ -84,6 +134,42 @@ def extract_features(data):
 
     return np.asarray(all_feature_vectors).astype('float32')
 
+def run_scikit_classifier(classifier, train_x, train_y, test_x, test_y, output_file=None):
+    """
+    Fits specified scikit learn model on training data
+    and prints results of model after classifying testing data
+    Saves model to file if output_file is not None
+    """
+
+    classifier.fit(train_x, train_y)
+
+    #get train accuracy
+    predictions = classifier.predict(train_x)
+    total = 0
+    correct = 0
+    for pred_y, true_y in zip(predictions, train_y):
+        if pred_y == true_y:
+            correct += 1
+        total += 1
+
+    print(f"Train Set Accuracy: {correct / total:.2f}")
+
+    #test
+    predictions = classifier.predict(test_x)
+
+    #evaluation metrics
+    total = 0
+    correct = 0
+    for pred_y, true_y in zip(predictions, test_y):
+        if pred_y == true_y:
+            correct += 1
+        total += 1
+
+    print(f"Test Set Accuracy: {correct / total:.2f}")
+
+    if output_file:
+        print(f"Saved model to {output_file}")
+        dump(classifier, output_file)
 
 def main():
 
@@ -98,6 +184,7 @@ def main():
     parser.add_argument('--loss', required=False)
     parser.add_argument('--num_epochs', required=False, type=int)
     parser.add_argument('--batch_size', required=False, type=int)
+    parser.add_argument('--bag_of_words', required=False)
 
     ARGS = parser.parse_args()
 
@@ -109,119 +196,59 @@ def main():
 
     #select the right model
 
+    scikit_models = {
+        'svc': SVC(kernel="rbf", gamma="auto"),
+        'logreg': LogisticRegression(),
+        'svm': svm.SVC(),
+        'random_forest': RandomForestClassifier(max_depth=7, n_estimators=500),
+        'decision_tree': DecisionTreeClassifier(max_depth=7, max_features='auto'),
+        'naive_bays': GaussianNB()
+    }
+
     architectures = ['simple_mlp', 'mlp']
     function_architecture_mapping = {
         'simple_mlp': simple_mlp,
         'mlp': mlp,
+        'dnn': dnn
     }
 
-    train_feature_vectors = extract_features(train_x)
-    test_feature_vectors = extract_features(test_x)
+    if ARGS.bag_of_words:
 
+        vocab = extract_vocab(train_x)
+        train_feature_vectors = extract_bow_vector(train_x, vocab)
+        test_feature_vectors = extract_bow_vector(test_x, vocab)
 
-    if ARGS.model_architecture == "svc":
-        classifier = SVC(kernel="rbf", gamma="auto")
-        classifier.fit(train_feature_vectors, train_y)
+        with open("bow_vocab.pickle", 'wb') as handle:
+            pickle.dump(vocab, handle)
 
-        #get train accuracy
-        predictions = classifier.predict(train_feature_vectors)
-        total = 0
-        correct = 0
-        for pred_y, true_y in zip(predictions, train_y):
-            if pred_y == true_y:
-                correct += 1
-            total += 1
-
-        print(f"Train Set Accuracy: {correct / total:.2f}")
-
-        #test
-        predictions = classifier.predict(test_feature_vectors)
-
-        #evaluation metrics
-        total = 0
-        correct = 0
-        for pred_y, true_y in zip(predictions, test_y):
-            if pred_y == true_y:
-                correct += 1
-            total += 1
-
-        print(f"Test Set Accuracy: {correct / total:.2f}")
-
-        if ARGS.model_output_file:
-            print(f"Saved model to {ARGS.model_output_file}")
-            dump(classifier, ARGS.model_output_file)
-
-    elif ARGS.model_architecture == "logreg":
-        classifier = LogisticRegression().fit(train_feature_vectors, train_y)
-        classifier.fit(train_feature_vectors, train_y)
-
-        #get train accuracy
-        predictions = classifier.predict(train_feature_vectors)
-        total = 0
-        correct = 0
-        for pred_y, true_y in zip(predictions, train_y):
-            if pred_y == true_y:
-                correct += 1
-            total += 1
-
-        print(f"Train Set Accuracy: {correct / total:.2f}")
-
-        #test
-        predictions = classifier.predict(test_feature_vectors)
-
-        #evaluation metrics
-        total = 0
-        correct = 0
-        for pred_y, true_y in zip(predictions, test_y):
-            if pred_y == true_y:
-                correct += 1
-            total += 1
-
-        print(f"Test Set Accuracy: {correct / total:.2f}")
-
-        if ARGS.model_output_file:
-            print(f"Saved model to {ARGS.model_output_file}")
-            dump(classifier, ARGS.model_output_file)
-
-    elif ARGS.model_architecture == "svm":
-        #train
-        classifier = svm.SVC()
-        classifier.fit(train_feature_vectors, train_y)
-
-        #get train accuracy
-        predictions = classifier.predict(train_feature_vectors)
-        total = 0
-        correct = 0
-        for pred_y, true_y in zip(predictions, train_y):
-            if pred_y == true_y:
-                correct += 1
-            total += 1
-
-        print(f"Train Set Accuracy: {correct / total:.2f}")
-
-        #test
-        predictions = classifier.predict(test_feature_vectors)
-
-        #evaluation metrics
-        total = 0
-        correct = 0
-        for pred_y, true_y in zip(predictions, test_y):
-            if pred_y == true_y:
-                correct += 1
-            total += 1
-
-        print(f"Test Set Accuracy: {correct / total:.2f}")
-
-        if ARGS.model_output_file:
-            print(f"Saved model to {ARGS.model_output_file}")
-            dump(classifier, ARGS.model_output_file)
-
-    elif ARGS.model_architecture not in architectures:
-        
-        raise Exception("Model chosen has not been implemented")
-    
     else:
+
+        train_feature_vectors = extract_features(train_x)
+        test_feature_vectors = extract_features(test_x)
         
+    print('Selected model: ' + ARGS.model_architecture)
+
+    if ARGS.model_architecture in scikit_models:
+        run_scikit_classifier(
+            scikit_models[ARGS.model_architecture], 
+            train_feature_vectors, train_y, 
+            test_feature_vectors, test_y,
+            output_file=ARGS.model_output_file
+        )
+    elif ARGS.model_architecture == 'dnn':
+        model = dnn(train_feature_vectors.shape[1])
+        model = dnn_model.fit(model, train_feature_vectors, train_y)
+
+        acc, predictions = dnn_model.predict(model, train_feature_vectors, train_y)
+        print(f"Train Set Accuracy: {acc:.2f}")
+
+        acc, predictions = dnn_model.predict(model, test_feature_vectors, test_y)
+        print(f"Test Set Accuracy: {acc:.2f}")
+        
+        if ARGS.model_output_file:
+            print(f"Saved model to {ARGS.model_output_file}")
+            dnn_model.save_model(model, ARGS.model_output_file)
+    elif ARGS.model_architecture in function_architecture_mapping:
         model_name = function_architecture_mapping[ARGS.model_architecture]
         model = model_name(train_feature_vectors.shape[1])
         np_train_y = np.asarray(train_y).astype('float32')
@@ -242,6 +269,8 @@ def main():
         history = model.fit(x=train_feature_vectors, y=np_train_y, batch_size=ARGS.batch_size, epochs=ARGS.num_epochs, shuffle=True, validation_data =[test_feature_vectors, np.asarray(test_y).astype('float32')], callbacks = [checkpoint])
         
         #model.save_weights(ARGS.model_output_file)
+    else:
+        raise Exception("Model chosen has not been implemented")
 
 if __name__ == "__main__":
     main()

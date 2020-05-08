@@ -9,6 +9,7 @@ click==7.1.2
 cycler==0.10.0
 dill==0.3.1.1
 docutils==0.15.2
+future==0.18.2
 gast==0.2.2
 google-api-core==1.17.0
 google-auth==1.14.1
@@ -63,6 +64,7 @@ tensorflow-estimator==2.1.0
 tensorflow-hub==0.8.0
 tensorhub==1.0.0a4
 termcolor==1.1.0
+torch==1.5.0
 tqdm==4.45.0
 urllib3==1.25.9
 Werkzeug==1.0.1

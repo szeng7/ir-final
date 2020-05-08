@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 
 python trainer.py \
-    --all_data data/covid/raw_tweets.test.pickle \
-    --weights pretrained_weights/svm_stem.joblib \
-    --output_counts new_output_counts.pickle \
-    --output_predictions new_output_prediction.pickle \
+    --all_data data/covid/raw_tweets.all.pickle \
+    --weights pretrained_weights/svm_bow.joblib \
+    --output_counts svm_bow_output_counts.pickle \
+    --bag_of_words "True" \

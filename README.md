@@ -36,3 +36,4 @@ To run the target test phase, run `./run_expt`. This will run trainer.py.
 |  90 |  78 |  all paper features, google encoder embeddings, symptom word check, stemming, count cdc words |  Decision Tree |
 |  78 |  79 |  all paper features, google encoder embeddings, symptom word check, stemming, count cdc words |  svm gauss kernel |
 |  81 |  76 |  all paper features, google encoder embeddings, symptom word check, stemming, count cdc words | Naive Bayes |
+|  97 |  83 |  bag of words | logreg |

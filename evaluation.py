@@ -24,7 +24,7 @@ def main():
     with open(ARGS.output_predictions, 'rb') as handle:
         output_predictions = pickle.load(handle)
 
-    
+    print(ARGS.model_counts)
     predicted_dates = []
     predicted_counts = []
     for key, value in sorted(model_counts.items()):
@@ -67,7 +67,8 @@ def main():
 
     remove_zero = []
     for date in predicted_dates:
-        remove_zero.append(date.lstrip("0"))
+        newdate = date.split("/")[0].lstrip("0") + "/" + date.split("/")[1].lstrip("0") + "/20"
+        remove_zero.append(newdate)
     predicted_dates = remove_zero
 
     for date in predicted_dates:

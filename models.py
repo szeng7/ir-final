@@ -8,6 +8,11 @@ from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv1D, MaxPooling1
 from tensorflow.keras.layers import Embedding
 from tensorflow.keras import regularizers
 
+from dnn_model import Net
+
+def dnn(input_shape):
+    return Net(input_shape)
+
 def simple_mlp(input_shape):
 
     input = Input(shape=(input_shape,))
